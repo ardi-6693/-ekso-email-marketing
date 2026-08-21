@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EKSO Email Marketing - Sistem Terpadu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-auth.js"></script>
+    <style>
+        * {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            background: linear-gradient(135deg, #f8f9fa 0%, #f0f3f7 100%);
+            min-height: 100vh;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease-in; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tab-btn {
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 500;
+            color: #64748B;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn:hover {
+            color: #FF6B35;
+            background: rgba(255, 107, 53, 0.05);
+        }
+
+        .tab-btn.active {
+            color: #FF6B35;
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.1) 0%, rgba(255, 107, 53, 0.05) 100%);
+            border-bottom: 3px solid #FF6B35;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #FF6B35 0%, #FF8C5A 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #E85A2B 0%, #FF7A48 100%);
+            transform: translateY(-2px);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.375rem 0.875rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-super-admin {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
+            color: #DC2626;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .badge-admin {
+            background: linear-gradient(135deg, rgba(0, 102, 255, 0.1) 0%, rgba(0, 102, 255, 0.05) 100%);
+            color: #0052CC;
+            border: 1px solid rgba(0, 102, 255, 0.2);
+        }
+
+        .badge-user {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+            color: #059669;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .role-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 107, 53, 0.1);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #FF6B35;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #FF6B35 0%, #FF8C5A 100%);
+            transition: width 0.3s ease;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.08) 0%, rgba(255, 107, 53, 0.02) 100%);
+            border: 1px solid rgba(255, 107, 53, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .hidden-role-admin {
+            display: none;
+        }
+
+        .admin-content {
+            display: none;
+        }
+
+        .admin-content.show {
+            display: block;
+        }
+
+        .user-row {
+            border-bottom: 1px solid rgba(255, 107, 53, 0.1);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-row:hover {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.02) 0%, rgba(255, 107, 53, 0.01) 100%);
+        }
+
+        .permission-list {
+            background: rgba(0, 0, 0, 0.02);
+            border-radius: 8px;
+            padding: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .permission-item {
+            padding: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #64748B;
+        }
+
+        .permission-item.granted {
+            color: #059669;
+            font-weight: 500;
+        }
+
+        .job-card {
+            background: linear-gradient(135deg, rgba(0, 102, 255, 0.08) 0%, rgba(0, 102, 255, 0.02) 100%);
+            border: 1px solid rgba(0, 102, 255, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .user-row {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .tab-btn {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.875rem;
+            }
+
+            .tab-btn span:not([data-lucide]) {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="min-h-screen">
+        <!-- Auth State (Hidden) -->
+        <div id="auth-container" class="hidden">
+            <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-blue-50 p-4">
+                <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+                    <div class="text-center mb-8">
+                        <div class="w-16 h-16 bg-gradient-to-br from-orange-400 to-orange-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+                            <span class="text-white text-2xl font-bold">EEM</span>
+                        </div>
+                        <h1 class="text-2xl font-bold text-gray-800">EKSO Email Marketing</h1>
+                        <p class="text-gray-600 mt-2">Platform Email Terintegrasi</p>
+                    </div>
+
+                    <div id="auth-form" class="space-y-4">
+                        <input type="email" id="authEmail" placeholder="Email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-orange-600">
+                        <input type="password" id="authPassword" placeholder="Password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-orange-600">
+                        <button onclick="handleAuth()" class="w-full px-4 py-2 bg-gradient-to-r from-orange-600 to-orange-500 text-white rounded-lg font-semibold hover:shadow-lg">Login / Sign Up</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main App (Hidden until auth) -->
+        <div id="main-app" class="hidden">
+            <!-- Navbar -->
+            <nav class="navbar sticky top-0 z-40">
+                <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-600 rounded-lg flex items-center justify-center text-white font-bold">EEM</div>
+                        <div>
+                            <h1 class="font-bold text-gray-800">EKSO Email Marketing</h1>
+                            <p class="text-xs text-gray-500">Role-Based Access System</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <div id="roleDisplay" class="role-indicator"></div>
+                        <button onclick="logout()" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 font-semibold flex items-center gap-2">
+                            <span data-lucide="log-out"></span>
+                            <span class="hidden sm:inline">Logout</span>
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Tab Navigation -->
+            <div class="max-w-7xl mx-auto px-6 py-8">
+                <div class="flex gap-2 mb-8 pb-4 border-b border-gray-200 overflow-x-auto">
+                    <button onclick="switchTab('dashboard')" class="tab-btn active flex items-center gap-2">
+                        <span data-lucide="bar-chart-3"></span>
+                        <span>Dashboard</span>
+                    </button>
+                    <button onclick="switchTab('campaigns')" class="tab-btn flex items-center gap-2">
+                        <span data-lucide="mail"></span>
+                        <span>Campaigns</span>
+                    </button>
+                    <button onclick="switchTab('subscribers')" class="tab-btn flex items-center gap-2">
+                        <span data-lucide="users"></span>
+                        <span>Subscribers</span>
+                    </button>
+                    <button onclick="switchTab('templates')" class="tab-btn flex items-center gap-2">
+                        <span data-lucide="palette"></span>
+                        <span>Templates</span>
+                    </button>
+
+                    <!-- Super Admin Only -->
+                    <button id="tab-admin" onclick="switchTab('admin')" class="tab-btn flex items-center gap-2 hidden">
+                        <span data-lucide="shield-admin"></span>
+                        <span>Admin Panel</span>
+                    </button>
+
+                    <button id="tab-jobs" onclick="switchTab('jobs')" class="tab-btn flex items-center gap-2 hidden">
+                        <span data-lucide="activity"></span>
+                        <span>Email Jobs</span>
+                    </button>
+                </div>
+
+                <!-- DASHBOARD TAB -->
+                <div id="dashboard" class="tab-content active">
+                    <div class="mb-8">
+                        <h2 class="text-3xl font-bold text-gray-800 mb-6">Dashboard</h2>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div class="stat-card">
+                                <p class="text-sm font-medium text-gray-600 mb-2">Total Subscribers</p>
+                                <p class="text-4xl font-bold text-gray-800" id="statSubscribers">0</p>
+                            </div>
+                            <div class="stat-card">
+                                <p class="text-sm font-medium text-gray-600 mb-2">Active Campaigns</p>
+                                <p class="text-4xl font-bold text-gray-800" id="statCampaigns">0</p>
+                            </div>
+                            <div class="stat-card">
+                                <p class="text-sm font-medium text-gray-600 mb-2">Emails Sent</p>
+                                <p class="text-4xl font-bold text-gray-800" id="statEmails">0</p>
+                            </div>
+                            <div class="stat-card" id="stat-users-card" style="display: none;">
+                                <p class="text-sm font-medium text-gray-600 mb-2">Total Users</p>
+                                <p class="text-4xl font-bold text-gray-800" id="statUsers">0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                            <span data-lucide="inbox"></span>
+                            Recent Campaigns
+                        </h3>
+                        <div id="recentCampaigns" class="space-y-3"></div>
+                    </div>
+                </div>
+
+                <!-- CAMPAIGNS TAB -->
+                <div id="campaigns" class="tab-content">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-3xl font-bold text-gray-800">Campaigns</h2>
+                        <button onclick="openCampaignModal()" class="btn btn-primary">
+                            <span data-lucide="plus"></span>
+                            New Campaign
+                        </button>
+                    </div>
+                    <div id="campaignsList" class="space-y-4"></div>
+                </div>
+
+                <!-- SUBSCRIBERS TAB -->
+                <div id="subscribers" class="tab-content">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-3xl font-bold text-gray-800">Subscribers</h2>
+                        <button onclick="openSubscriberModal()" class="btn btn-primary">
+                            <span data-lucide="plus"></span>
+                            Add Subscriber
+                        </button>
+                    </div>
+                    <div id="subscribersList" class="card"></div>
+                </div>
+
+                <!-- TEMPLATES TAB -->
+                <div id="templates" class="tab-content">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-3xl font-bold text-gray-800">Templates</h2>
+                        <button onclick="openTemplateModal()" class="btn btn-primary">
+                            <span data-lucide="plus"></span>
+                            New Template
+                        </button>
+                    </div>
+                    <div id="templatesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                </div>
+
+                <!-- ADMIN PANEL (Super Admin Only) -->
+                <div id="admin" class="tab-content">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6">Admin Panel</h2>
+
+                    <!-- User Management -->
+                    <div class="card p-6 mb-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                            <span data-lucide="users"></span>
+                            User Management
+                        </h3>
+                        <div id="usersList" class="space-y-2"></div>
+                    </div>
+
+                    <!-- Audit Log -->
+                    <div class="card p-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                            <span data-lucide="log"></span>
+                            Audit Log
+                        </h3>
+                        <div id="auditLogList" class="space-y-2 max-h-96 overflow-y-auto"></div>
+                    </div>
+                </div>
+
+                <!-- EMAIL JOBS (Admin+) -->
+                <div id="jobs" class="tab-content">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6">Email Jobs</h2>
+                    <div id="jobsList" class="space-y-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Campaign Modal -->
+    <div id="campaignModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="bg-gradient-to-r from-orange-600 to-orange-500 text-white p-6 flex justify-between items-center">
+                <h3 class="text-2xl font-bold">New Campaign</h3>
+                <button onclick="closeCampaignModal()" class="text-white hover:text-gray-200 text-2xl">&times;</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="text" id="campaignName" placeholder="Campaign Name" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <textarea id="campaignSubject" placeholder="Email Subject" class="w-full px-4 py-2 border border-gray-300 rounded-lg h-20"></textarea>
+                <select id="campaignTemplate" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Select Template</option>
+                </select>
+                <div class="flex gap-3">
+                    <button onclick="saveCampaign()" class="flex-1 btn btn-primary">Save Campaign</button>
+                    <button onclick="closeCampaignModal()" class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subscriber Modal -->
+    <div id="subscriberModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full">
+            <div class="bg-gradient-to-r from-orange-600 to-orange-500 text-white p-6 flex justify-between items-center">
+                <h3 class="text-xl font-bold">Add Subscriber</h3>
+                <button onclick="closeSubscriberModal()" class="text-white hover:text-gray-200 text-2xl">&times;</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="email" id="subscriberEmail" placeholder="Email" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <input type="text" id="subscriberName" placeholder="Name" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <input type="text" id="subscriberTags" placeholder="Tags (comma separated)" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <div class="flex gap-3">
+                    <button onclick="saveSubscriber()" class="flex-1 btn btn-primary">Add</button>
+                    <button onclick="closeSubscriberModal()" class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template Modal -->
+    <div id="templateModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="bg-gradient-to-r from-orange-600 to-orange-500 text-white p-6 flex justify-between items-center">
+                <h3 class="text-xl font-bold">New Template</h3>
+                <button onclick="closeTemplateModal()" class="text-white hover:text-gray-200 text-2xl">&times;</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="text" id="templateName" placeholder="Template Name" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <textarea id="templateContent" placeholder="HTML Content" class="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono h-48"></textarea>
+                <div class="flex gap-3">
+                    <button onclick="saveTemplate()" class="flex-1 btn btn-primary">Save</button>
+                    <button onclick="closeTemplateModal()" class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send Email Modal -->
+    <div id="sendEmailModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full">
+            <div class="bg-gradient-to-r from-green-600 to-green-500 text-white p-6 flex justify-between items-center">
+                <h3 class="text-xl font-bold">Send Campaign</h3>
+                <button onclick="closeSendModal()" class="text-white hover:text-gray-200 text-2xl">&times;</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div id="sendCampaignInfo" class="bg-gray-100 p-4 rounded-lg text-sm"></div>
+                <div id="sendProgress" class="hidden">
+                    <p class="text-sm text-gray-600 mb-2">Sending emails...</p>
+                    <div class="progress-bar">
+                        <div id="sendProgressBar" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <p id="sendProgressText" class="text-xs text-gray-600 mt-2">0%</p>
+                </div>
+                <div class="flex gap-3">
+                    <button id="sendBtn" onclick="sendBulkEmail()" class="flex-1 btn btn-primary">Send Emails</button>
+                    <button onclick="closeSendModal()" class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "your-project.firebaseapp.com",
+            projectId: "your-project",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+
+        const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
+
+        let currentUser = null;
+        let userRole = 'user';
+        let userPermissions = [];
+        let allSubscribers = [];
+        let allCampaigns = [];
+        let allTemplates = [];
+
+        // ============================================
+        // AUTHENTICATION
+        // ============================================
+
+        auth.onAuthStateChanged(async user => {
+            if (user) {
+                currentUser = user;
+                await loadUserRole();
+                showMainApp();
+                loadAllData();
+            } else {
+                showAuthForm();
+            }
+            lucide.createIcons();
+        });
+
+        async function handleAuth() {
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+
+            if (!email || !password) {
+                alert('Email dan password harus diisi');
+                return;
+            }
+
+            try {
+                // Try login first
+                try {
+                    await auth.signInWithEmailAndPassword(email, password);
+                } catch (error) {
+                    // If login fails, try sign up
+                    if (error.code === 'auth/user-not-found') {
+                        const result = await auth.createUserWithEmailAndPassword(email, password);
+                        
+                        // Initialize new user with 'user' role
+                        await db.ref(`users/${result.user.uid}`).set({
+                            email: email,
+                            role: 'user',
+                            createdAt: new Date().toISOString()
+                        });
+                    } else {
+                        throw error;
+                    }
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function loadUserRole() {
+            try {
+                const roleSnapshot = await db.ref(`users/${currentUser.uid}/role`).once('value');
+                userRole = roleSnapshot.val() || 'user';
+                
+                // Get permissions based on role
+                const rolePermissions = {
+                    'super_admin': [
+                        'view_all_subscribers',
+                        'view_all_campaigns',
+                        'create_campaign',
+                        'send_campaign',
+                        'manage_users',
+                        'view_analytics',
+                        'view_jobs'
+                    ],
+                    'admin': [
+                        'view_all_subscribers',
+                        'view_all_campaigns',
+                        'create_campaign',
+                        'send_campaign',
+                        'view_analytics',
+                        'view_jobs'
+                    ],
+                    'user': [
+                        'create_campaign',
+                        'send_campaign'
+                    ]
+                };
+
+                userPermissions = rolePermissions[userRole] || rolePermissions['user'];
+                updateRoleDisplay();
+                updateUIBasedOnRole();
+            } catch (error) {
+                console.error('Error loading role:', error);
+                userRole = 'user';
+            }
+        }
+
+        function updateRoleDisplay() {
+            const display = document.getElementById('roleDisplay');
+            const roleLabel = {
+                'super_admin': 'Super Admin',
+                'admin': 'Admin',
+                'user': 'User'
+            };
+
+            display.innerHTML = `
+                <span data-lucide="shield"></span>
+                ${roleLabel[userRole]}
+            `;
+            lucide.createIcons();
+        }
+
+        function updateUIBasedOnRole() {
+            // Super admin gets admin panel
+            if (userRole === 'super_admin') {
+                document.getElementById('tab-admin').classList.remove('hidden');
+                document.getElementById('tab-jobs').classList.remove('hidden');
+                document.getElementById('stat-users-card').style.display = 'block';
+                loadAdminPanel();
+            }
+
+            // Admin+ gets jobs tab
+            if (userRole === 'super_admin' || userRole === 'admin') {
+                document.getElementById('tab-jobs').classList.remove('hidden');
+                loadEmailJobs();
+            }
+        }
+
+        // ============================================
+        // UI FUNCTIONS
+        // ============================================
+
+        function showAuthForm() {
+            document.getElementById('auth-container').classList.remove('hidden');
+            document.getElementById('main-app').classList.add('hidden');
+        }
+
+        function showMainApp() {
+            document.getElementById('auth-container').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.closest('.tab-btn').classList.add('active');
+            lucide.createIcons();
+        }
+
+        function logout() {
+            auth.signOut().then(() => {
+                showAuthForm();
+            });
+        }
+
+        // ============================================
+        // MODAL FUNCTIONS
+        // ============================================
+
+        function openCampaignModal() {
+            document.getElementById('campaignModal').classList.remove('hidden');
+        }
+
+        function closeCampaignModal() {
+            document.getElementById('campaignModal').classList.add('hidden');
+        }
+
+        function openSubscriberModal() {
+            document.getElementById('subscriberModal').classList.remove('hidden');
+        }
+
+        function closeSubscriberModal() {
+            document.getElementById('subscriberModal').classList.add('hidden');
+        }
+
+        function openTemplateModal() {
+            document.getElementById('templateModal').classList.remove('hidden');
+        }
+
+        function closeTemplateModal() {
+            document.getElementById('templateModal').classList.add('hidden');
+        }
+
+        function openSendModal(campaignId) {
+            const campaign = allCampaigns.find(c => c.id === campaignId);
+            if (!campaign) return;
+
+            document.getElementById('sendCampaignInfo').innerHTML = `
+                <p><strong>Campaign:</strong> ${campaign.name}</p>
+                <p><strong>Recipients:</strong> ${allSubscribers.length}</p>
+                <p class="text-yellow-600 mt-2">⚠️ Kirim email ke ${allSubscribers.length} subscriber?</p>
+            `;
+
+            document.getElementById('sendEmailModal').classList.remove('hidden');
+            window.currentCampaignId = campaignId;
+        }
+
+        function closeSendModal() {
+            document.getElementById('sendEmailModal').classList.add('hidden');
+        }
+
+        // ============================================
+        // DATA LOADING
+        // ============================================
+
+        async function loadAllData() {
+            await loadSubscribers();
+            await loadCampaigns();
+            await loadTemplates();
+            updateDashboard();
+        }
+
+        async function loadSubscribers() {
+            const ref = db.ref(`users/${currentUser.uid}/subscribers`);
+            ref.on('value', snapshot => {
+                allSubscribers = [];
+                snapshot.forEach(child => {
+                    allSubscribers.push({ id: child.key, ...child.val() });
+                });
+                renderSubscribers();
+            });
+        }
+
+        async function loadCampaigns() {
+            const ref = db.ref(`users/${currentUser.uid}/campaigns`);
+            ref.on('value', snapshot => {
+                allCampaigns = [];
+                snapshot.forEach(child => {
+                    allCampaigns.push({ id: child.key, ...child.val() });
+                });
+                renderCampaigns();
+            });
+        }
+
+        async function loadTemplates() {
+            const ref = db.ref(`users/${currentUser.uid}/templates`);
+            ref.on('value', snapshot => {
+                allTemplates = [];
+                snapshot.forEach(child => {
+                    allTemplates.push({ id: child.key, ...child.val() });
+                });
+                renderTemplates();
+                populateTemplateSelect();
+            });
+        }
+
+        // ============================================
+        // RENDER FUNCTIONS
+        // ============================================
+
+        function renderSubscribers() {
+            const container = document.getElementById('subscribersList');
+            if (allSubscribers.length === 0) {
+                container.innerHTML = '<p class="p-6 text-center text-gray-500">No subscribers yet</p>';
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-100 border-b">
+                            <tr>
+                                <th class="px-6 py-3 text-left font-semibold">Email</th>
+                                <th class="px-6 py-3 text-left font-semibold">Name</th>
+                                <th class="px-6 py-3 text-left font-semibold">Tags</th>
+                                <th class="px-6 py-3 text-center font-semibold">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${allSubscribers.map(sub => `
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="px-6 py-4">${sub.email}</td>
+                                    <td class="px-6 py-4">${sub.name || '-'}</td>
+                                    <td class="px-6 py-4">
+                                        ${(sub.tags || '').split(',').map(tag => `<span class="badge badge-info">${tag.trim()}</span>`).join('')}
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <button onclick="deleteSubscriber('${sub.id}')" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function renderCampaigns() {
+            const container = document.getElementById('campaignsList');
+            if (allCampaigns.length === 0) {
+                container.innerHTML = '<p class="text-center py-8 text-gray-500">No campaigns yet. Create one to get started!</p>';
+                return;
+            }
+
+            container.innerHTML = allCampaigns.map(campaign => `
+                <div class="card p-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h4 class="font-bold text-lg text-gray-800">${campaign.name}</h4>
+                            <p class="text-sm text-gray-600">${campaign.subject}</p>
+                        </div>
+                        <span class="badge ${campaign.status === 'sent' ? 'badge-user' : 'badge-admin'}">${campaign.status}</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 gap-2 mb-4">
+                        <div class="bg-blue-50 p-3 rounded text-sm">
+                            <p class="font-bold text-gray-800">${campaign.stats?.sent || 0}</p>
+                            <p class="text-xs text-gray-600">Sent</p>
+                        </div>
+                        <div class="bg-green-50 p-3 rounded text-sm">
+                            <p class="font-bold text-gray-800">${campaign.stats?.opens || 0}</p>
+                            <p class="text-xs text-gray-600">Opens</p>
+                        </div>
+                        <div class="bg-purple-50 p-3 rounded text-sm">
+                            <p class="font-bold text-gray-800">${campaign.stats?.clicks || 0}</p>
+                            <p class="text-xs text-gray-600">Clicks</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        ${campaign.status === 'draft' ? `
+                            ${hasPermission('send_campaign') ? `
+                                <button onclick="openSendModal('${campaign.id}')" class="flex-1 btn btn-primary">
+                                    <span data-lucide="send"></span>
+                                    Send Campaign
+                                </button>
+                            ` : ''}
+                            <button onclick="deleteCampaign('${campaign.id}')" class="btn bg-red-500 text-white hover:bg-red-600">
+                                <span data-lucide="trash"></span>
+                            </button>
+                        ` : `
+                            <p class="text-sm text-gray-600">Sent on ${new Date(campaign.sentAt).toLocaleDateString('id-ID')}</p>
+                        `}
+                    </div>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function renderTemplates() {
+            const container = document.getElementById('templatesList');
+            container.innerHTML = allTemplates.map(template => `
+                <div class="card p-6">
+                    <h4 class="font-semibold text-gray-800 mb-2">${template.name}</h4>
+                    <p class="text-sm text-gray-600 mb-4 line-clamp-2">${template.htmlContent.substring(0, 100)}...</p>
+                    <div class="flex gap-2">
+                        <button onclick="useTemplate('${template.id}')" class="flex-1 px-3 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">Use</button>
+                        <button onclick="deleteTemplate('${template.id}')" class="px-3 py-2 bg-red-500 text-white rounded text-sm hover:bg-red-600">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ============================================
+        // SAVE FUNCTIONS
+        // ============================================
+
+        async function saveCampaign() {
+            const name = document.getElementById('campaignName').value;
+            const subject = document.getElementById('campaignSubject').value;
+            const templateId = document.getElementById('campaignTemplate').value;
+
+            if (!name || !subject || !templateId) {
+                alert('Semua field harus diisi');
+                return;
+            }
+
+            const campaignId = 'camp_' + Date.now();
+            await db.ref(`users/${currentUser.uid}/campaigns/${campaignId}`).set({
+                name,
+                subject,
+                templateId,
+                status: 'draft',
+                createdAt: new Date().toISOString(),
+                stats: { sent: 0, opens: 0, clicks: 0 }
+            });
+
+            closeCampaignModal();
+            alert('Campaign berhasil dibuat!');
+        }
+
+        async function saveSubscriber() {
+            const email = document.getElementById('subscriberEmail').value;
+            const name = document.getElementById('subscriberName').value;
+            const tags = document.getElementById('subscriberTags').value;
+
+            if (!email) {
+                alert('Email harus diisi');
+                return;
+            }
+
+            const subscriberId = 'sub_' + Date.now();
+            await db.ref(`users/${currentUser.uid}/subscribers/${subscriberId}`).set({
+                email,
+                name,
+                tags,
+                status: 'active',
+                createdAt: new Date().toISOString()
+            });
+
+            closeSubscriberModal();
+            alert('Subscriber berhasil ditambahkan!');
+        }
+
+        async function saveTemplate() {
+            const name = document.getElementById('templateName').value;
+            const content = document.getElementById('templateContent').value;
+
+            if (!name || !content) {
+                alert('Name dan content harus diisi');
+                return;
+            }
+
+            const templateId = 'tpl_' + Date.now();
+            await db.ref(`users/${currentUser.uid}/templates/${templateId}`).set({
+                name,
+                htmlContent: content,
+                createdAt: new Date().toISOString()
+            });
+
+            closeTemplateModal();
+            alert('Template berhasil disimpan!');
+        }
+
+        // ============================================
+        // BULK EMAIL SENDING
+        // ============================================
+
+        async function sendBulkEmail() {
+            const campaignId = window.currentCampaignId;
+            const campaign = allCampaigns.find(c => c.id === campaignId);
+
+            if (!campaign) return;
+
+            if (!confirm(`Kirim email ke ${allSubscribers.length} subscriber?`)) return;
+
+            // Show progress
+            document.getElementById('sendProgress').classList.remove('hidden');
+            document.getElementById('sendBtn').disabled = true;
+
+            try {
+                const idToken = await currentUser.getIdToken();
+                
+                const response = await fetch(`${BACKEND_URL}/api/campaigns/${campaignId}/send-bulk`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${idToken}`
+                    },
+                    body: JSON.stringify({
+                        recipientCount: allSubscribers.length,
+                        batchSize: 50
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`✅ Email job dimulai!\n\nJob ID: ${data.jobId}\n\nStatus: ${data.message}`);
+                    
+                    // Track progress
+                    trackEmailJobProgress(data.jobId);
+                    closeSendModal();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error sending emails: ' + error.message);
+            } finally {
+                document.getElementById('sendProgress').classList.add('hidden');
+                document.getElementById('sendBtn').disabled = false;
+            }
+        }
+
+        async function trackEmailJobProgress(jobId) {
+            const checkProgress = async () => {
+                try {
+                    const idToken = await currentUser.getIdToken();
+                    
+                    const response = await fetch(`${BACKEND_URL}/api/jobs/${jobId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${idToken}`
+                        }
+                    });
+
+                    const job = await response.json();
+
+                    if (job.status === 'processing' || job.status === 'pending') {
+                        // Continue checking
+                        setTimeout(checkProgress, 5000);
+                    } else if (job.status === 'completed') {
+                        alert(`✅ Email job selesai!\n\nDikirim: ${job.sentCount}\nGagal: ${job.failedCount}`);
+                    } else if (job.status === 'failed') {
+                        alert(`❌ Email job gagal: ${job.error}`);
+                    }
+                } catch (error) {
+                    console.error('Error tracking job:', error);
+                }
+            };
+
+            checkProgress();
+        }
+
+        // ============================================
+        // ADMIN FUNCTIONS
+        // ============================================
+
+        async function loadAdminPanel() {
+            if (!hasPermission('manage_users')) return;
+
+            // Load users
+            try {
+                const idToken = await currentUser.getIdToken();
+                const response = await fetch(`${BACKEND_URL}/api/admin/users`, {
+                    headers: {
+                        'Authorization': `Bearer ${idToken}`
+                    }
+                });
+
+                const users = await response.json();
+                renderUsersList(users);
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
+
+            // Load audit log
+            try {
+                const idToken = await currentUser.getIdToken();
+                const response = await fetch(`${BACKEND_URL}/api/admin/audit-log?limit=20`, {
+                    headers: {
+                        'Authorization': `Bearer ${idToken}`
+                    }
+                });
+
+                const data = await response.json();
+                renderAuditLog(data.logs);
+            } catch (error) {
+                console.error('Error loading audit log:', error);
+            }
+        }
+
+        function renderUsersList(users) {
+            const container = document.getElementById('usersList');
+            container.innerHTML = users.map(user => `
+                <div class="user-row">
+                    <div>
+                        <p class="font-semibold text-gray-800">${user.email}</p>
+                        <span class="badge ${
+                            user.role === 'super_admin' ? 'badge-super-admin' :
+                            user.role === 'admin' ? 'badge-admin' :
+                            'badge-user'
+                        }">${user.role}</span>
+                    </div>
+                    <select onchange="updateUserRole('${user.uid}', this.value)" class="px-3 py-1 border border-gray-300 rounded">
+                        <option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option>
+                        <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+                        <option value="super_admin" ${user.role === 'super_admin' ? 'selected' : ''}>Super Admin</option>
+                    </select>
+                </div>
+            `).join('');
+        }
+
+        function renderAuditLog(logs) {
+            const container = document.getElementById('auditLogList');
+            container.innerHTML = logs.map(log => `
+                <div class="border-l-2 border-orange-600 pl-4 py-2 text-sm">
+                    <p class="font-semibold text-gray-800">${log.action}</p>
+                    <p class="text-xs text-gray-600">${new Date(log.timestamp).toLocaleString('id-ID')}</p>
+                    <p class="text-xs text-gray-500">User: ${log.userId}</p>
+                </div>
+            `).join('');
+        }
+
+        async function loadEmailJobs() {
+            // Load and display email jobs
+            try {
+                const jobsRef = db.ref('jobs');
+                jobsRef.on('value', snapshot => {
+                    const jobs = [];
+                    snapshot.forEach(child => {
+                        const job = child.val();
+                        // Filter by current user if not super_admin
+                        if (userRole === 'super_admin' || job.userId === currentUser.uid) {
+                            jobs.push(job);
+                        }
+                    });
+                    renderEmailJobs(jobs);
+                });
+            } catch (error) {
+                console.error('Error loading jobs:', error);
+            }
+        }
+
+        function renderEmailJobs(jobs) {
+            const container = document.getElementById('jobsList');
+            if (jobs.length === 0) {
+                container.innerHTML = '<p class="text-center py-8 text-gray-500">No email jobs yet</p>';
+                return;
+            }
+
+            container.innerHTML = jobs.map(job => `
+                <div class="job-card">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h4 class="font-bold text-gray-800">Job ID: ${job.jobId.substring(0, 8)}...</h4>
+                            <p class="text-sm text-gray-600">Campaign: ${job.campaignId}</p>
+                        </div>
+                        <span class="badge ${
+                            job.status === 'completed' ? 'badge-user' :
+                            job.status === 'processing' ? 'badge-admin' :
+                            job.status === 'failed' ? 'bg-red-100 text-red-800' :
+                            'badge-warning'
+                        }">${job.status}</span>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="flex justify-between text-xs text-gray-600 mb-2">
+                            <span>Progress</span>
+                            <span>${job.progress}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${job.progress}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 text-sm">
+                        <div class="bg-white bg-opacity-50 p-2 rounded">
+                            <p class="font-bold text-gray-800">${job.sentCount || 0}</p>
+                            <p class="text-xs text-gray-600">Sent</p>
+                        </div>
+                        <div class="bg-white bg-opacity-50 p-2 rounded">
+                            <p class="font-bold text-gray-800">${job.failedCount || 0}</p>
+                            <p class="text-xs text-gray-600">Failed</p>
+                        </div>
+                        <div class="bg-white bg-opacity-50 p-2 rounded">
+                            <p class="font-bold text-gray-800">${job.recipientCount}</p>
+                            <p class="text-xs text-gray-600">Total</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function updateUserRole(userId, newRole) {
+            try {
+                const idToken = await currentUser.getIdToken();
+                
+                const response = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/role`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${idToken}`
+                    },
+                    body: JSON.stringify({ role: newRole })
+                });
+
+                if (response.ok) {
+                    alert('User role updated successfully!');
+                } else {
+                    alert('Error updating user role');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // ============================================
+        // DELETE FUNCTIONS
+        // ============================================
+
+        async function deleteSubscriber(id) {
+            if (confirm('Delete this subscriber?')) {
+                await db.ref(`users/${currentUser.uid}/subscribers/${id}`).remove();
+            }
+        }
+
+        async function deleteCampaign(id) {
+            if (confirm('Delete this campaign?')) {
+                await db.ref(`users/${currentUser.uid}/campaigns/${id}`).remove();
+            }
+        }
+
+        async function deleteTemplate(id) {
+            if (confirm('Delete this template?')) {
+                await db.ref(`users/${currentUser.uid}/templates/${id}`).remove();
+            }
+        }
+
+        // ============================================
+        // HELPER FUNCTIONS
+        // ============================================
+
+        function hasPermission(permission) {
+            return userPermissions.includes(permission);
+        }
+
+        function populateTemplateSelect() {
+            const select = document.getElementById('campaignTemplate');
+            select.innerHTML = '<option value="">Select Template</option>' +
+                allTemplates.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+        }
+
+        function useTemplate(templateId) {
+            alert('Template ready to use in new campaign!');
+        }
+
+        function updateDashboard() {
+            document.getElementById('statSubscribers').textContent = allSubscribers.length;
+            document.getElementById('statCampaigns').textContent = allCampaigns.length;
+            
+            let totalSent = 0;
+            allCampaigns.forEach(c => {
+                totalSent += c.stats?.sent || 0;
+            });
+            document.getElementById('statEmails').textContent = totalSent;
+
+            // Recent campaigns
+            const recent = document.getElementById('recentCampaigns');
+            recent.innerHTML = allCampaigns.slice(0, 5).map(c => `
+                <div class="flex justify-between items-center p-4 bg-gray-50 rounded">
+                    <div>
+                        <p class="font-semibold text-gray-800">${c.name}</p>
+                        <p class="text-xs text-gray-600">${c.status} • ${new Date(c.createdAt).toLocaleDateString('id-ID')}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-semibold">${c.stats?.sent || 0} sent</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
